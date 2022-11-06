@@ -5,17 +5,25 @@ fn main() {
     let doc = EpubDoc::new("/home/sam/Downloads/cosmere-ebooks/the-bands-of-mourning.epub");
     assert!(doc.is_ok());
     let mut doc = doc.unwrap();
-    println!("{}", doc.mdata("title").unwrap());
-    println!("spine: {:?}", doc.spine);
-    println!("metadata: {:?}", doc.metadata);
-    println!("toc: {:?}", doc.toc[9].children[2].content);
+    // println!("{}", doc.mdata("title").unwrap());
+    // println!("spine: {:?}", doc.spine);
+    // println!("metadata: {:?}", doc.metadata);
+    // println!("toc: {:?}", doc.toc[9].children[2].content);
 
     doc.set_current_page(9).unwrap();
-    println!("?? {:?}", doc.get_current_str());
+    // println!("?? {:?}", doc.get_current_str());
     // dammit, it doesn't actually get me much. Just prints out the html. Could have done this after unzipping the epub
 
     let this_page = doc.get_current().unwrap();
-    let foo = from_read(&this_page[..], 80);
-    println!("page as string?: {}", foo)
+    let page_content = from_read(&this_page[..], usize::MAX);
+    // println!("page as string?: {:?}", foo)
     // okay! That kinda works. Each paragraph is separated by a blank newline. Would need to recombine the lines that from_read breaks
+
+    // just gonna max out usize and do it by lines
+    for line in page_content.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        println!("The Bands of Mourning|Chapter 5|{}", line);
+    }
 }
