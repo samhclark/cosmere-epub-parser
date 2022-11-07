@@ -11,3 +11,5 @@ html2text = "0.4.3"
 tantivy = "0.18.1"
 serde = "1.0.147"
 serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+axum = "0.5.17"

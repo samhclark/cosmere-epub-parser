@@ -1,8 +1,16 @@
-use std::{fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, collections::HashMap};
 
+use axum::{
+    extract::{Path, Query, Json},
+    routing::{get, post},
+    http::StatusCode,
+    response::{IntoResponse, Html},
+    Router,
+};
 use epub::doc::EpubDoc;
 use html2text::from_read;
 use serde::{Deserialize, Serialize};
+use std::net::SocketAddr;
 use tantivy::{
     collector::TopDocs,
     doc,
@@ -18,12 +26,34 @@ struct LineScheme {
     chapter_content: String,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let doc = EpubDoc::new("./the-bands-of-mourning.epub");
     match doc {
         Ok(bom) => do_tantivy(bom),
         Err(_) => println!("Skipping, not found: The Bands of Mourning"),
-    }
+    };
+
+    // build our application with a single route
+    let app = Router::new()
+        .route("/", get(index))
+        .route("/search", get(search));
+
+    // run it with hyper on localhost:3000
+    axum::Server::bind(&"0.0.0.0:3001".parse().unwrap())
+        .serve(app.into_make_service())
+        .await
+        .unwrap();
+}
+
+async fn index() -> Html<&'static str> {
+    let index = include_str!("../assets/index.html");
+    Html(index)
+}
+
+async fn search(Query(params): Query<HashMap<String, String>>) {
+    let search_term = params.get("q").unwrap();
+    println!("You searched for {}", search_term);
 }
 
 fn print_to_stdout(mut doc: EpubDoc<BufReader<File>>) {
@@ -67,7 +97,7 @@ fn do_tantivy(mut doc: EpubDoc<BufReader<File>>) {
     let paragraph_field = schema_builder.add_text_field("paragraph_field", TEXT | STORED);
     let schema = schema_builder.build();
 
-    let index = Index::create_in_dir("./tantivy-index", schema.clone()).unwrap();
+    let index = Index::create_from_tempdir(schema.clone()).unwrap();
 
     // Here we use a buffer of 100MB that will be split
     // between indexing threads.
