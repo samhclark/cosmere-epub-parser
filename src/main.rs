@@ -61,7 +61,7 @@ async fn main() {
         .route("/", get(index))
         .route("/search", get(|q| search(q, tantivy_index)));
 
-    axum::Server::bind(&"0.0.0.0:3001".parse().unwrap())
+    axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
         .serve(app.into_make_service())
         .await
         .unwrap();
