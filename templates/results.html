@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=1;">
+  <meta name="referrer" content="origin">
+  <title>CSearch</title>
+  <style type="text/css">
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+        grid-gap: 20px;
+    }
+
+    .card {
+        display: grid;
+        grid-template-rows: max-content 200px 1fr;
+    }
+  </style>
+</head>
+
+<body>
+<a name="top"></a>
+
+<br>
+<span class="header">CSearch</span>
+<br><br>
+
+<p>{% if search_results.len() == 0 %}
+    no results for {{ search_term }}
+  {% else if search_results.len() == 1 %}
+    1 result for {{ search_term }}
+  {% else %}
+    {{ search_results.len() }} results for {{ search_term }}
+  {% endif %}
+</p>
+
+<ul class="cards">
+{% for result in search_results %}
+  <li class="card">
+    <article>
+      <header>{{ result.book }}, {{ result.chapter }}</header>
+      <p>{{ result.text }}</p>
+    </article>
+  </li>
+{% endfor %}
+</ul>
+
+<br>
+
+</body>
+</html>
