@@ -6,31 +6,38 @@ use axum::{
     routing::get,
     Router,
 };
+use books::{
+    build_alloy_of_law, build_bands_of_mourning, build_secret_history, build_shadows_of_self,
+};
 use domain::{HtmlTemplate, IndexableBook, ResultsTemplate, RichParagraph};
-use epub::doc::EpubDoc;
 use html2text::from_read;
 use tantivy::{
     collector::TopDocs,
     doc,
     query::QueryParser,
-    schema::{Schema, STORED, TEXT},
+    schema::{Schema, STORED, TEXT, TextOptions, TextFieldIndexing, IndexRecordOption},
     DocAddress, Index, Score,
 };
 
+mod books;
 mod domain;
 
 #[tokio::main]
 async fn main() {
     let bands_of_mourning = build_bands_of_mourning();
     let shadows_of_self = build_shadows_of_self();
-    // inspect(shadows_of_self);
+    let alloy_of_law = build_alloy_of_law();
+    let secret_history = build_secret_history();
+    // inspect(secret_history);
 
     let tantivy_index = build_search_index();
     add_book(bands_of_mourning, &tantivy_index);
     add_book(shadows_of_self, &tantivy_index);
+    add_book(alloy_of_law, &tantivy_index);
+    add_book(secret_history, &tantivy_index);
 
     let app = Router::new()
-        .route("/", get(index))
+        .route("/", get(root))
         .route("/search", get(|q| search(q, tantivy_index)));
 
     axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
@@ -39,9 +46,9 @@ async fn main() {
         .unwrap();
 }
 
-async fn index() -> Html<&'static str> {
-    let index = include_str!("../assets/index.html");
-    Html(index)
+async fn root() -> Html<&'static str> {
+    let homepage = include_str!("../assets/index.html");
+    Html(homepage)
 }
 
 async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> impl IntoResponse {
@@ -64,7 +71,7 @@ async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> 
     // Perform search.
     // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
     let top_docs: Vec<(Score, DocAddress)> =
-        searcher.search(&query, &TopDocs::with_limit(10)).unwrap();
+        searcher.search(&query, &TopDocs::with_limit(20)).unwrap();
 
     // top_docs
     let mut more_results: Vec<RichParagraph> = vec![];
@@ -108,35 +115,20 @@ fn inspect(book: IndexableBook) {
     }
 }
 
-fn build_bands_of_mourning() -> IndexableBook {
-    let epub =
-        EpubDoc::new("./the-bands-of-mourning.epub").expect("Not found: The Bands of Mourning");
-    IndexableBook {
-        title: "The Bands of Mourning".to_string(),
-        epub_file: epub,
-        first_chapter_index: 7,
-        last_chapter_index: 42,
-        skippable_chapters: vec![8, 13, 26],
-    }
-}
-
-fn build_shadows_of_self() -> IndexableBook {
-    let epub = EpubDoc::new("./shadows-of-self.epub").expect("Not found: Shadows of Self");
-    IndexableBook {
-        title: "Shadows of Self".to_string(),
-        epub_file: epub,
-        first_chapter_index: 7,
-        last_chapter_index: 37,
-        skippable_chapters: vec![8, 13, 31],
-    }
-}
-
 fn build_search_index() -> Index {
     let mut schema_builder = Schema::builder();
 
+    let text_options = TextOptions::default()
+        .set_indexing_options(
+        TextFieldIndexing::default()
+            .set_tokenizer("en_stem")
+            .set_index_option(IndexRecordOption::Basic)
+        )
+        .set_stored();
+
     schema_builder.add_text_field("book_title", TEXT | STORED);
     schema_builder.add_text_field("chapter_title", TEXT | STORED);
-    schema_builder.add_text_field("paragraph", TEXT | STORED);
+    schema_builder.add_text_field("paragraph", text_options);
     let schema = schema_builder.build();
 
     Index::create_from_tempdir(schema).expect("Failed to build index")
@@ -170,11 +162,28 @@ fn add_book(book: IndexableBook, index: &Index) {
             index_writer
                 .add_document(doc!(
                     book_field => book.title.clone(),
-                    chapter_field => chapter_title.clone(),
+                    chapter_field => pretty_chapter(&chapter_title),
                     paragraph_field => line))
                 .unwrap();
         }
     }
 
     index_writer.commit().unwrap();
+}
+
+fn pretty_chapter(raw_chapter: &str) -> String {
+    if raw_chapter.to_ascii_lowercase() == "prologue" {
+        String::from("Prologue")
+    } else if raw_chapter.to_ascii_lowercase() == "epilogue" {
+        String::from("Epilogue")
+    } else if raw_chapter.to_ascii_lowercase().starts_with("chapter") {
+        let num: String = raw_chapter
+            .chars()
+            .into_iter()
+            .filter(|c| c.is_ascii_digit())
+            .collect();
+        format!("Chapter {num}")
+    } else {
+        String::from(raw_chapter)
+    }
 }
