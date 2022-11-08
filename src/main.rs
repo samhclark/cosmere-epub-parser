@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::fs::File;
-use std::io::BufReader;
 
 use axum::{
     extract::Query,
@@ -8,7 +6,7 @@ use axum::{
     routing::get,
     Router,
 };
-use domain::{HtmlTemplate, ResultsTemplate, RichParagraph};
+use domain::{HtmlTemplate, IndexableBook, ResultsTemplate, RichParagraph};
 use epub::doc::EpubDoc;
 use html2text::from_read;
 use tantivy::{
@@ -23,14 +21,13 @@ mod domain;
 
 #[tokio::main]
 async fn main() {
-    let bands_of_mourning =
-        EpubDoc::new("./the-bands-of-mourning.epub").expect("Not found: The Bands of Mourning");
-    let shadows_of_self = EpubDoc::new("./shadows-of-self.epub").expect("Not found: Shadows of Self");
+    let bands_of_mourning = build_bands_of_mourning();
+    let shadows_of_self = build_shadows_of_self();
     // inspect(shadows_of_self);
 
     let tantivy_index = build_search_index();
-    add_bands_of_mourning(bands_of_mourning, &tantivy_index);
-    add_shadows_of_self(shadows_of_self, &tantivy_index);
+    add_book(bands_of_mourning, &tantivy_index);
+    add_book(shadows_of_self, &tantivy_index);
 
     let app = Router::new()
         .route("/", get(index))
@@ -104,10 +101,33 @@ async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> 
     HtmlTemplate(template)
 }
 
-fn inspect(mut doc: EpubDoc<BufReader<File>>) {
+fn inspect(book: IndexableBook) {
     println!("Spine: ");
-    for (i, s) in doc.spine.iter().enumerate() {
+    for (i, s) in book.epub_file.spine.iter().enumerate() {
         println!("{}\t{}", i, s);
+    }
+}
+
+fn build_bands_of_mourning() -> IndexableBook {
+    let epub =
+        EpubDoc::new("./the-bands-of-mourning.epub").expect("Not found: The Bands of Mourning");
+    IndexableBook {
+        title: "The Bands of Mourning".to_string(),
+        epub_file: epub,
+        first_chapter_index: 7,
+        last_chapter_index: 42,
+        skippable_chapters: vec![8, 13, 26],
+    }
+}
+
+fn build_shadows_of_self() -> IndexableBook {
+    let epub = EpubDoc::new("./shadows-of-self.epub").expect("Not found: Shadows of Self");
+    IndexableBook {
+        title: "Shadows of Self".to_string(),
+        epub_file: epub,
+        first_chapter_index: 7,
+        last_chapter_index: 37,
+        skippable_chapters: vec![8, 13, 31],
     }
 }
 
@@ -122,20 +142,17 @@ fn build_search_index() -> Index {
     Index::create_from_tempdir(schema).expect("Failed to build index")
 }
 
-fn add_bands_of_mourning(mut doc: EpubDoc<BufReader<File>>, index: &Index) {
+fn add_book(book: IndexableBook, index: &Index) {
     let mut index_writer = index.writer(128_000_000).unwrap();
 
     let book_field = index.schema().get_field("book_title").unwrap();
     let chapter_field = index.schema().get_field("chapter_title").unwrap();
     let paragraph_field = index.schema().get_field("paragraph").unwrap();
 
-    let book_title = "The Bands of Mourning";
-    let first_chapter_index: usize = 7;
-    let skipable_indexes = vec![8, 13, 26];
-    let last_chapter_index: usize = 42;
+    let mut doc = book.epub_file;
 
-    for i in first_chapter_index..=last_chapter_index {
-        if skipable_indexes.contains(&i) {
+    for i in book.first_chapter_index..=book.last_chapter_index {
+        if book.skippable_chapters.contains(&i) {
             continue;
         }
         doc.set_current_page(i)
@@ -152,47 +169,7 @@ fn add_bands_of_mourning(mut doc: EpubDoc<BufReader<File>>, index: &Index) {
             }
             index_writer
                 .add_document(doc!(
-                    book_field => book_title,
-                    chapter_field => chapter_title.clone(),
-                    paragraph_field => line))
-                .unwrap();
-        }
-    }
-
-    index_writer.commit().unwrap();
-}
-
-fn add_shadows_of_self(mut doc: EpubDoc<BufReader<File>>, index: &Index) {
-    let mut index_writer = index.writer(128_000_000).unwrap();
-
-    let book_field = index.schema().get_field("book_title").unwrap();
-    let chapter_field = index.schema().get_field("chapter_title").unwrap();
-    let paragraph_field = index.schema().get_field("paragraph").unwrap();
-
-    let book_title = "Shadows of Self";
-    let first_chapter_index: usize = 7;
-    let skipable_indexes = vec![8, 13, 31];
-    let last_chapter_index: usize = 37;
-
-    for i in first_chapter_index..=last_chapter_index {
-        if skipable_indexes.contains(&i) {
-            continue;
-        }
-        doc.set_current_page(i)
-            .expect("You got your indexes wrong, dude");
-        let chapter_title = doc.spine[i].clone();
-        let this_page = doc.get_current().unwrap();
-        let page_content = from_read(&this_page[..], usize::MAX);
-        for line in page_content.lines() {
-            if line.is_empty() {
-                continue;
-            }
-            if line.starts_with('[') {
-                continue;
-            }
-            index_writer
-                .add_document(doc!(
-                    book_field => book_title,
+                    book_field => book.title.clone(),
                     chapter_field => chapter_title.clone(),
                     paragraph_field => line))
                 .unwrap();
