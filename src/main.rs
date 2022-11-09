@@ -15,15 +15,26 @@ use tantivy::{
     collector::TopDocs,
     doc,
     query::QueryParser,
-    schema::{Schema, STORED, TEXT, TextOptions, TextFieldIndexing, IndexRecordOption},
+    schema::{IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, TEXT},
     DocAddress, Index, Score,
 };
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 mod books;
 mod domain;
 
 #[tokio::main]
 async fn main() {
+    let some_subscriber = tracing_subscriber::FmtSubscriber::new();
+    tracing::subscriber::set_global_default(some_subscriber).expect("this better work");
+    // tracing_subscriber::set_global_default(tracing_subscriber::FmtSubscriber);
+    // tracing_subscriber::registry()
+    //     .with(tracing_subscriber::EnvFilter::new(
+    //         std::env::var("RUST_LOG").unwrap_or_else(|_| "example_global_404_handler=debug".into()),
+    //     ))
+    //     .with(tracing_subscriber::fmt::layer())
+    //     .init();
+
     let bands_of_mourning = build_bands_of_mourning();
     let shadows_of_self = build_shadows_of_self();
     let alloy_of_law = build_alloy_of_law();
@@ -40,6 +51,7 @@ async fn main() {
         .route("/", get(root))
         .route("/search", get(|q| search(q, tantivy_index)));
 
+    tracing::info!("Application started");
     axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
         .serve(app.into_make_service())
         .await
@@ -52,8 +64,15 @@ async fn root() -> Html<&'static str> {
 }
 
 async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> impl IntoResponse {
-    let search_term = params.get("q").unwrap();
-    println!("You searched for {}", search_term);
+    let search_term: String = params
+        .get("q")
+        .unwrap()
+        .trim()
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || c == &' ')
+        .collect();
+    // println!("You searched for {}", search_term);
+    tracing::info!("You searched for {}", search_term);
     let reader = index.reader().unwrap();
 
     let searcher = reader.searcher();
@@ -66,7 +85,7 @@ async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> 
     // QueryParser may fail if the query is not in the right
     // format. For user facing applications, this can be a problem.
     // A ticket has been opened regarding this problem.
-    let query = query_parser.parse_query(search_term).unwrap();
+    let query = query_parser.parse_query(&search_term).unwrap();
 
     // Perform search.
     // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
@@ -120,9 +139,9 @@ fn build_search_index() -> Index {
 
     let text_options = TextOptions::default()
         .set_indexing_options(
-        TextFieldIndexing::default()
-            .set_tokenizer("en_stem")
-            .set_index_option(IndexRecordOption::Basic)
+            TextFieldIndexing::default()
+                .set_tokenizer("en_stem")
+                .set_index_option(IndexRecordOption::Basic),
         )
         .set_stored();
 

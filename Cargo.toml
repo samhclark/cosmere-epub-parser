@@ -14,3 +14,11 @@ serde_json = "1.0"
 tokio = { version = "1", features = ["full"] }
 axum = "0.5.17"
 askama = "0.11.1"
+tracing = "0.1"
+tracing-subscriber = {version = "0.3", features = ["env-filter", "std"] }
+
+[profile.dev]
+debug = 0
+
+[profile.release]
+debug = 0

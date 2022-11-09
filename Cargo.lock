@@ -224,6 +224,8 @@ dependencies = [
  "serde_json",
  "tantivy",
  "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]
