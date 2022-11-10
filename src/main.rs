@@ -6,9 +6,6 @@ use axum::{
     routing::get,
     Router,
 };
-use books::{
-    build_alloy_of_law, build_bands_of_mourning, build_secret_history, build_shadows_of_self,
-};
 use domain::{HtmlTemplate, IndexableBook, ResultsTemplate, RichParagraph};
 use html2text::from_read;
 use tantivy::{
@@ -18,34 +15,20 @@ use tantivy::{
     schema::{IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, TEXT},
     DocAddress, Index, Score,
 };
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tracing::Level;
 
 mod books;
 mod domain;
 
 #[tokio::main]
 async fn main() {
-    let some_subscriber = tracing_subscriber::FmtSubscriber::new();
-    tracing::subscriber::set_global_default(some_subscriber).expect("this better work");
-    // tracing_subscriber::set_global_default(tracing_subscriber::FmtSubscriber);
-    // tracing_subscriber::registry()
-    //     .with(tracing_subscriber::EnvFilter::new(
-    //         std::env::var("RUST_LOG").unwrap_or_else(|_| "example_global_404_handler=debug".into()),
-    //     ))
-    //     .with(tracing_subscriber::fmt::layer())
-    //     .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
-    let bands_of_mourning = build_bands_of_mourning();
-    let shadows_of_self = build_shadows_of_self();
-    let alloy_of_law = build_alloy_of_law();
-    let secret_history = build_secret_history();
-    // inspect(secret_history);
-
+    let books = books::load_all();
     let tantivy_index = build_search_index();
-    add_book(bands_of_mourning, &tantivy_index);
-    add_book(shadows_of_self, &tantivy_index);
-    add_book(alloy_of_law, &tantivy_index);
-    add_book(secret_history, &tantivy_index);
+    for book in books {
+        add_book(book, &tantivy_index);
+    }
 
     let app = Router::new()
         .route("/", get(root))
@@ -58,11 +41,13 @@ async fn main() {
         .unwrap();
 }
 
+#[allow(clippy::unused_async)]
 async fn root() -> Html<&'static str> {
     let homepage = include_str!("../assets/index.html");
     Html(homepage)
 }
 
+#[allow(clippy::unused_async)]
 async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> impl IntoResponse {
     let search_term: String = params
         .get("q")
@@ -71,8 +56,7 @@ async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> 
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || c == &' ')
         .collect();
-    // println!("You searched for {}", search_term);
-    tracing::info!("You searched for {}", search_term);
+    tracing::info!("Searched for \"{}\"", search_term);
     let reader = index.reader().unwrap();
 
     let searcher = reader.searcher();
@@ -82,23 +66,17 @@ async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> 
     let paragraph_field = index.schema().get_field("paragraph").unwrap();
     let query_parser = QueryParser::for_index(&index, vec![paragraph_field]);
 
-    // QueryParser may fail if the query is not in the right
-    // format. For user facing applications, this can be a problem.
-    // A ticket has been opened regarding this problem.
+    // QueryParser may fail if the query is not in the right format
+    // TODO: toss up a 400 Bad Request when that happens
     let query = query_parser.parse_query(&search_term).unwrap();
 
-    // Perform search.
-    // `topdocs` contains the 10 most relevant doc ids, sorted by decreasing scores...
     let top_docs: Vec<(Score, DocAddress)> =
         searcher.search(&query, &TopDocs::with_limit(20)).unwrap();
 
-    // top_docs
-    let mut more_results: Vec<RichParagraph> = vec![];
+    let mut results: Vec<RichParagraph> = vec![];
     for (_score, doc_address) in top_docs {
-        // Retrieve the actual content of documents given its `doc_address`.
         let retrieved_doc = searcher.doc(doc_address).unwrap();
-        // println!("{}", index.schema().to_json(&retrieved_doc));
-        more_results.push(RichParagraph {
+        results.push(RichParagraph {
             book: retrieved_doc
                 .get_first(book_field)
                 .unwrap()
@@ -122,12 +100,14 @@ async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> 
 
     let template = ResultsTemplate {
         search_term: search_term.clone(),
-        search_results: more_results,
+        search_results: results,
     };
     HtmlTemplate(template)
 }
 
-fn inspect(book: IndexableBook) {
+#[allow(dead_code)]
+/// My own method for helping "look at" a book that I'm trying to load
+fn inspect(book: &IndexableBook) {
     println!("Spine: ");
     for (i, s) in book.epub_file.spine.iter().enumerate() {
         println!("{}\t{}", i, s);
@@ -150,7 +130,7 @@ fn build_search_index() -> Index {
     schema_builder.add_text_field("paragraph", text_options);
     let schema = schema_builder.build();
 
-    Index::create_from_tempdir(schema).expect("Failed to build index")
+    Index::create_from_tempdir(schema).expect("Building index in tempdir should not fail")
 }
 
 fn add_book(book: IndexableBook, index: &Index) {
@@ -167,7 +147,7 @@ fn add_book(book: IndexableBook, index: &Index) {
             continue;
         }
         doc.set_current_page(i)
-            .expect("You got your indexes wrong, dude");
+            .expect("Indexes used in `skippable_chapters` must be valid");
         let chapter_title = doc.spine[i].clone();
         let this_page = doc.get_current().unwrap();
         let page_content = from_read(&this_page[..], usize::MAX);
@@ -199,7 +179,7 @@ fn pretty_chapter(raw_chapter: &str) -> String {
         let num: String = raw_chapter
             .chars()
             .into_iter()
-            .filter(|c| c.is_ascii_digit())
+            .filter(char::is_ascii_digit)
             .collect();
         format!("Chapter {num}")
     } else {

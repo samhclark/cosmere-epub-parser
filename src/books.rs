@@ -1,47 +1,34 @@
 use crate::domain::IndexableBook;
-use epub::doc::EpubDoc;
 
-pub fn build_bands_of_mourning() -> IndexableBook {
-    let epub =
-        EpubDoc::new("./the-bands-of-mourning.epub").expect("Not found: The Bands of Mourning");
-    IndexableBook {
-        title: "The Bands of Mourning".to_string(),
-        epub_file: epub,
-        first_chapter_index: 7,
-        last_chapter_index: 42,
-        skippable_chapters: vec![8, 13, 26],
-    }
-}
-
-pub fn build_shadows_of_self() -> IndexableBook {
-    let epub = EpubDoc::new("./shadows-of-self.epub").expect("Not found: Shadows of Self");
-    IndexableBook {
-        title: "Shadows of Self".to_string(),
-        epub_file: epub,
-        first_chapter_index: 7,
-        last_chapter_index: 37,
-        skippable_chapters: vec![8, 13, 31],
-    }
-}
-
-pub fn build_alloy_of_law() -> IndexableBook {
-    let epub = EpubDoc::new("./the-alloy-of-law.epub").expect("Not found: The Alloy of Law");
-    IndexableBook {
-        title: "The Alloy of Law".to_string(),
-        epub_file: epub,
-        first_chapter_index: 7,
-        last_chapter_index: 32,
-        skippable_chapters: vec![10, 16, 22, 26],
-    }
-}
-
-pub fn build_secret_history() -> IndexableBook {
-    let epub = EpubDoc::new("./secret-history.epub").expect("Not found: Secret History");
-    IndexableBook {
-        title: "Secret History".to_string(),
-        epub_file: epub,
-        first_chapter_index: 5,
-        last_chapter_index: 35,
-        skippable_chapters: vec![7, 12, 16, 21, 25],
-    }
+pub fn load_all() -> Vec<IndexableBook> {
+    vec![
+        IndexableBook::from(
+            String::from("The Alloy of Law"),
+            "./the-alloy-of-law.epub",
+            7,
+            32,
+            vec![10, 16, 22, 26],
+        ),
+        IndexableBook::from(
+            String::from("Shadows of Self"),
+            "./shadows-of-self.epub",
+            7,
+            37,
+            vec![8, 13, 31],
+        ),
+        IndexableBook::from(
+            String::from("The Bands of Mourning"),
+            "./the-bands-of-mourning.epub",
+            7,
+            42,
+            vec![8, 13, 26],
+        ),
+        IndexableBook::from(
+            String::from("Secret History"),
+            "./secret-history.epub",
+            5,
+            35,
+            vec![7, 12, 16, 21, 25],
+        ),
+    ]
 }
