@@ -1,10 +1,10 @@
+/* I like this color a lot #073b4c */
 html, body {
   display: flex;
   flex-direction: column;
   justify-items: flex-start;
   max-width: 100%;
-  background-color: #dbdde5;
-  background-image: url("background.svg");
+  background-color: #40376E;
   font-family: "Gill Sans", "Gill Sans MT", "Franklin Gothic Medium",
     "Franklin Gothic", "ITC Franklin Gothic", Helvetica, Arial, sans-serif;
 }
@@ -13,9 +13,9 @@ html, body {
   position: relative;
   top: 25%;
   text-align: center;
-  background-color: #fcfcfc;
+  background-color: #F7F7F9;
   border-radius: 4px;
-  box-shadow: 0 16px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 0.5rem;
   padding: 1rem;
   width: 700px;
@@ -23,7 +23,7 @@ html, body {
 h1 {
   font-size: 3rem;
   font-weight: bold;
-  color: #1237b1;
+  color: #788BFF;
 }
 @media only screen and (max-device-width: 700px) {
   .query {
@@ -37,7 +37,7 @@ h1 {
   }
 }
 .query {
-  border-color: #1237b1;
+  border-color: black;
   border-style: solid solid solid solid;
   border-width: 1px 1px 1px 1px;
   -moz-border-radius: 3px;
@@ -63,9 +63,9 @@ h1 {
 }
 .card {
   display: flex;
-  background-color: #fcfcfc;
+  background-color: #F7F7F9;
   border-radius: 4px;
-  box-shadow: 0 8px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 0.5rem;
   padding: 1rem;
 }
@@ -74,10 +74,10 @@ ul {
   padding: 0;
 }
 .query:focus-visible {
-  outline: black solid 2px;
+  outline: #FFBE0B solid 2px;
   outline-offset: 1px;
 }
 .submit:focus-visible {
-  outline: black solid 2px;
+  outline: #FFBE0B solid 2px;
   outline-offset: 1px;
 }
