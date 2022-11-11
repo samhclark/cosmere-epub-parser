@@ -31,9 +31,7 @@ async fn main() {
     for book in books {
         add_book(book, &tantivy_index);
     }
-
-    // let serve_dir = get_service(ServeDir::new("assets")).handle_error(handle_error);
-        
+      
     let app = Router::new()
         .fallback(get_service(ServeDir::new("./assets")).handle_error(handle_error))
         .route("/search", get(|q| search(q, tantivy_index)))
@@ -48,12 +46,6 @@ async fn main() {
         .await
         .unwrap();
 }
-
-// #[allow(clippy::unused_async)]
-// async fn root() -> Html<&'static str> {
-//     let homepage = include_str!("../assets/index.html");
-//     Html(homepage)
-// }
 
 #[allow(clippy::unused_async)]
 async fn handle_error(_err: io::Error) -> impl IntoResponse {
