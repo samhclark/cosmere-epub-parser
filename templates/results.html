@@ -43,16 +43,16 @@
         {% endif %}
       </p>
     </div>
-    <ul class="cards">
+    <ol class="cards">
       {% for result in search_results %}
       <li class="card">
         <article>
-          <header><strong>{{ result.book }}</strong>, <em>{{ result.chapter }}</em></header>
+          <header><cite><span class="font-bold">{{ result.book }}</span>, {{ result.chapter }}</cite></header>
           <p>{{ result.text }}</p>
         </article>
       </li>
       {% endfor %}
-    </ul>
+    </ol>
 
     <br />
   </body>
