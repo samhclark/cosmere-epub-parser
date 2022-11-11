@@ -9,6 +9,7 @@ RUN apt-get update --quiet --assume-yes \
     && apt-get install dumb-init --quiet --assume-yes
 
 COPY --from=builder /usr/local/cargo/bin/cosmere-epub-parser /usr/local/bin/cosmere-epub-parser
+COPY ./assets/* /assets
 COPY ./*.epub /
 EXPOSE 8080
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/cosmere-epub-parser"]
