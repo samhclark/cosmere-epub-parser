@@ -37,7 +37,7 @@ async fn main() {
     let app = Router::new()
         .fallback(get_service(ServeDir::new("./assets")).handle_error(handle_error))
         .route("/search", get(|q| search(q, tantivy_index)))
-        .layer(SetResponseHeaderLayer::if_not_present(header::CONTENT_SECURITY_POLICY_REPORT_ONLY, HeaderValue::from_static("default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'")))
+        .layer(SetResponseHeaderLayer::if_not_present(header::CONTENT_SECURITY_POLICY, HeaderValue::from_static("default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'")))
         .layer(SetResponseHeaderLayer::if_not_present(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
         .layer(SetResponseHeaderLayer::if_not_present(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY")))
         .layer(SetResponseHeaderLayer::if_not_present(header::STRICT_TRANSPORT_SECURITY, HeaderValue::from_static("max-age=63072000")));

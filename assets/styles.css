@@ -1,20 +1,26 @@
-html {
+html, body {
+  display: flex;
+  flex-direction: column;
+  justify-items: flex-start;
+  max-width: 100%;
   background-color: #dbdde5;
   background-image: url("background.svg");
   font-family: "Gill Sans", "Gill Sans MT", "Franklin Gothic Medium",
     "Franklin Gothic", "ITC Franklin Gothic", Helvetica, Arial, sans-serif;
 }
-body {
+.search-header {
+  align-self: center;
   position: relative;
   top: 25%;
   text-align: center;
   background-color: #fcfcfc;
-  border-radius: 8px;
+  border-radius: 4px;
   box-shadow: 0 16px 16px rgba(0, 0, 0, 0.1);
-  margin: 1rem;
+  margin: 0.5rem;
   padding: 1rem;
+  width: 700px;
 }
-.header {
+h1 {
   font-size: 3rem;
   font-weight: bold;
   color: #1237b1;
@@ -22,6 +28,12 @@ body {
 @media only screen and (max-device-width: 700px) {
   .query {
     width: 160px;
+  }
+  .search-header {
+    width: 80vw;
+  }
+  .card {
+    width: 80vw;
   }
 }
 .query {
@@ -32,6 +44,7 @@ body {
   border-radius: 3px;
   font-size: 20px;
   padding: 5px 6px;
+  margin-bottom: 1rem;
   text-align: left;
   width: 60%;
   max-width: 600px;
@@ -41,4 +54,30 @@ body {
   height: 40px;
   font-size: 20px;
   cursor: pointer;
+}
+.cards {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+}
+.card {
+  display: flex;
+  background-color: #fcfcfc;
+  border-radius: 4px;
+  box-shadow: 0 8px 8px rgba(0, 0, 0, 0.1);
+  margin: 0.5rem;
+  padding: 1rem;
+}
+ul {
+  margin: 0;
+  padding: 0;
+}
+.query:focus-visible {
+  outline: black solid 2px;
+  outline-offset: 1px;
+}
+.submit:focus-visible {
+  outline: black solid 2px;
+  outline-offset: 1px;
 }
