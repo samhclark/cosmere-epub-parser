@@ -1,9 +1,10 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, io};
 
 use axum::{
     extract::Query,
-    response::{Html, IntoResponse},
-    routing::get,
+    http::{header, HeaderValue, StatusCode},
+    response::IntoResponse,
+    routing::{get, get_service},
     Router,
 };
 use domain::{HtmlTemplate, IndexableBook, ResultsTemplate, RichParagraph};
@@ -15,6 +16,7 @@ use tantivy::{
     schema::{IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, TEXT},
     DocAddress, Index, Score,
 };
+use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 use tracing::Level;
 
 mod books;
@@ -30,9 +32,15 @@ async fn main() {
         add_book(book, &tantivy_index);
     }
 
+    // let serve_dir = get_service(ServeDir::new("assets")).handle_error(handle_error);
+        
     let app = Router::new()
-        .route("/", get(root))
-        .route("/search", get(|q| search(q, tantivy_index)));
+        .fallback(get_service(ServeDir::new("./assets")).handle_error(handle_error))
+        .route("/search", get(|q| search(q, tantivy_index)))
+        .layer(SetResponseHeaderLayer::if_not_present(header::CONTENT_SECURITY_POLICY_REPORT_ONLY, HeaderValue::from_static("default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'")))
+        .layer(SetResponseHeaderLayer::if_not_present(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
+        .layer(SetResponseHeaderLayer::if_not_present(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY")))
+        .layer(SetResponseHeaderLayer::if_not_present(header::STRICT_TRANSPORT_SECURITY, HeaderValue::from_static("max-age=63072000")));
 
     tracing::info!("Application started");
     axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
@@ -41,10 +49,15 @@ async fn main() {
         .unwrap();
 }
 
+// #[allow(clippy::unused_async)]
+// async fn root() -> Html<&'static str> {
+//     let homepage = include_str!("../assets/index.html");
+//     Html(homepage)
+// }
+
 #[allow(clippy::unused_async)]
-async fn root() -> Html<&'static str> {
-    let homepage = include_str!("../assets/index.html");
-    Html(homepage)
+async fn handle_error(_err: io::Error) -> impl IntoResponse {
+    (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong...")
 }
 
 #[allow(clippy::unused_async)]

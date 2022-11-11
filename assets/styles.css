@@ -1,0 +1,44 @@
+html {
+  background-color: #dbdde5;
+  background-image: url("background.svg");
+  font-family: "Gill Sans", "Gill Sans MT", "Franklin Gothic Medium",
+    "Franklin Gothic", "ITC Franklin Gothic", Helvetica, Arial, sans-serif;
+}
+body {
+  position: relative;
+  top: 25%;
+  text-align: center;
+  background-color: #fcfcfc;
+  border-radius: 8px;
+  box-shadow: 0 16px 16px rgba(0, 0, 0, 0.1);
+  margin: 1rem;
+  padding: 1rem;
+}
+.header {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #1237b1;
+}
+@media only screen and (max-device-width: 700px) {
+  .query {
+    width: 160px;
+  }
+}
+.query {
+  border-color: #1237b1;
+  border-style: solid solid solid solid;
+  border-width: 1px 1px 1px 1px;
+  -moz-border-radius: 3px;
+  border-radius: 3px;
+  font-size: 20px;
+  padding: 5px 6px;
+  text-align: left;
+  width: 60%;
+  max-width: 600px;
+  height: 28px;
+}
+.submit {
+  height: 40px;
+  font-size: 20px;
+  cursor: pointer;
+}
