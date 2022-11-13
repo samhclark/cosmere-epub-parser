@@ -1,31 +1,63 @@
+html {
+  font-size: 2.4vw;
+  font-family: "Gill Sans", "Gill Sans MT", "Franklin Gothic Medium",
+  "Franklin Gothic", "ITC Franklin Gothic", Helvetica, Arial, sans-serif;
+}
+@media all and (width >= 1000px) {
+  html {
+    font-size: 24px;
+  }
+}
+@media all and (width <= 520px) {
+  html {
+    font-size: 18px;
+  }
+}
+
 /* I like this color a lot #073b4c */
-html, body {
+:root {
+  --primary: #5643b5;
+  /* --secondary: #ffffff;
+  --text: #000000;
+  --link: #3344dd;
+  --visited-link: #804180;
+  --focus: #ffdd00; */
+  accent-color: var(--primary);
+}
+
+body {
   display: flex;
   flex-direction: column;
   justify-items: flex-start;
-  max-width: 100%;
-  background-color: #40376E;
-  font-family: "Gill Sans", "Gill Sans MT", "Franklin Gothic Medium",
-    "Franklin Gothic", "ITC Franklin Gothic", Helvetica, Arial, sans-serif;
+  /* max-width: 100%; */
+  /* background-color: var(--secondary); */
+  margin-left: auto;
+  margin-right: auto;
+  width: clamp(23ch, 80vw, 72ch);
+  /* max-width: 1000px;
+  min-height: 100%; */
 }
 .search-header {
   align-self: center;
   position: relative;
   top: 25%;
   text-align: center;
-  background-color: #F7F7F9;
+  /* background-color: #F7F7F9; */
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 0.5rem;
   padding: 1rem;
-  width: 700px;
+  width: clamp(23ch, 80vw, 72ch);
+  /* width: 700px; */
+  /* max-width: 72ch;
+  min-width: 80vh; */
 }
 h1 {
   font-size: 3rem;
   font-weight: bold;
-  color: #788BFF;
+  color: var(--primary);
 }
-@media only screen and (max-device-width: 700px) {
+/* @media only screen and (max-device-width: 700px) {
   .query {
     width: 160px;
   }
@@ -35,9 +67,9 @@ h1 {
   .card {
     width: 80vw;
   }
-}
+} */
 .query {
-  border-color: black;
+  /* border-color: black; */
   border-style: solid solid solid solid;
   border-width: 1px 1px 1px 1px;
   -moz-border-radius: 3px;
@@ -63,22 +95,23 @@ h1 {
 }
 .card {
   display: flex;
-  background-color: #F7F7F9;
+  /* background-color: #F7F7F9; */
   border-radius: 4px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   margin: 0.5rem;
   padding: 1rem;
+  width: clamp(23ch, 80vw, 72ch);
 }
 ol {
   margin: 0;
   padding: 0;
 }
 .query:focus-visible {
-  outline: #FFBE0B solid 2px;
+  /* outline: #FFBE0B solid 2px; */
   outline-offset: 1px;
 }
 .submit:focus-visible {
-  outline: #FFBE0B solid 2px;
+  /* outline: #FFBE0B solid 2px; */
   outline-offset: 1px;
 }
 .font-bold {
