@@ -13,6 +13,7 @@
       name="description"
       content="Full-text search for Brandon Sanderson's Cosmere"
     />
+    <meta name="color-scheme" content="dark light" />
     <meta name="robots" content="index,nofollow" />
     <title>CSearch</title>
     <link href="styles.css" rel="stylesheet" />
@@ -23,7 +24,7 @@
         <h1>CSearch</h1>
         <form action="/search" method="get">
           <label>
-            Search the Cosmere<br/>
+            Search the Cosmere<br />
             <input
               class="query"
               type="text"
@@ -51,13 +52,18 @@
           {% for result in search_results %}
           <li class="card">
             <article>
-              <h3><cite>{{ result.book }}, <span class="font-normal">{{ result.chapter }}</span></cite></h3>
+              <h3>
+                <cite
+                  >{{ result.book }},
+                  <span class="font-normal">{{ result.chapter }}</span></cite
+                >
+              </h3>
               <p>{{ result.text }}</p>
             </article>
           </li>
           {% endfor %}
         </ol>
-      </div>
+      </section>
     </main>
   </body>
-</html> 
+</html>
