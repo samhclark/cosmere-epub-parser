@@ -17,43 +17,47 @@
     <title>CSearch</title>
     <link href="styles.css" rel="stylesheet" />
   </head>
-
   <body>
-    <div class="search-header">
-      <h1>CSearch</h1>
-      <form action="/search" method="get">
-        <input
-          class="query"
-          type="text"
-          size="40"
-          name="q"
-          autocomplete="off"
-          value=""
-          autofocus
-        />
-        <input class="submit" type="submit" value="Search" />
-      </form>
-      <p>
-        {% if search_results.len() == 0 %} 
-          no results for &ldquo;{{ search_term }}&rdquo; 
-        {% else if search_results.len() == 1 %} 
-          1 result for &ldquo;{{ search_term }}&rdquo; 
-        {% else %} 
-          {{ search_results.len() }} results for &ldquo;{{ search_term }}&rdquo; 
-        {% endif %}
-      </p>
-    </div>
-    <ol class="cards">
-      {% for result in search_results %}
-      <li class="card">
-        <article>
-          <header><cite><span class="font-bold">{{ result.book }}</span>, {{ result.chapter }}</cite></header>
-          <p>{{ result.text }}</p>
-        </article>
-      </li>
-      {% endfor %}
-    </ol>
-
-    <br />
+    <main>
+      <header>
+        <h1>CSearch</h1>
+        <form action="/search" method="get">
+          <label>
+            Search the Cosmere<br/>
+            <input
+              class="query"
+              type="text"
+              size="40"
+              name="q"
+              autocomplete="off"
+              value="{{ search_term }}"
+            />
+          </label>
+          <button>Search</button>
+        </form>
+      </header>
+      <section>
+        <h2 class="results-summary">
+          {% if search_results.len() == 0 %} 
+            no results  
+          {% else if search_results.len() == 1 %} 
+            1 result  
+          {% else %} 
+            {{ search_results.len() }} results  
+          {% endif %}
+          for &ldquo;{{ search_term }}&rdquo;
+        </h2>
+        <ol class="cards">
+          {% for result in search_results %}
+          <li class="card">
+            <article>
+              <h3><cite>{{ result.book }}, <span class="font-normal">{{ result.chapter }}</span></cite></h3>
+              <p>{{ result.text }}</p>
+            </article>
+          </li>
+          {% endfor %}
+        </ol>
+      </div>
+    </main>
   </body>
-</html>
+</html> 
