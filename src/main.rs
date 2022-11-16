@@ -1,4 +1,11 @@
-use std::{collections::HashMap, io};
+use std::{
+    collections::HashMap,
+    future::Future,
+    io,
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    pin::Pin,
+    sync::Arc,
+};
 
 use axum::{
     extract::Query,
@@ -8,7 +15,16 @@ use axum::{
     Router,
 };
 use domain::{HtmlTemplate, IndexableBook, ResultsTemplate, RichParagraph};
+use futures::future;
 use html2text::from_read;
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Body, Request, Response,
+};
+use prometheus_client::encoding::text::encode;
+use prometheus_client::metrics::counter::Counter;
+use prometheus_client::metrics::family::Family;
+use prometheus_client::registry::Registry;
 use tantivy::{
     collector::TopDocs,
     doc,
@@ -22,29 +38,91 @@ use tracing::Level;
 mod books;
 mod domain;
 
+type Label = (String, String);
+
+#[allow(unused_must_use)]
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    let mut registry = <Registry>::with_prefix("csearch");
+    let http_requests = Family::<Label, Counter>::default();
+    registry.register(
+        "http_requests",
+        "Number of HTTP requests received",
+        Box::new(http_requests.clone()),
+    );
 
     let books = books::load_all();
     let tantivy_index = build_search_index();
     for book in books {
         add_book(book, &tantivy_index);
     }
-      
+
+    // Create application server
     let app = Router::new()
         .fallback(get_service(ServeDir::new("./assets")).handle_error(handle_error))
-        .route("/search", get(|q| search(q, tantivy_index)))
-        .layer(SetResponseHeaderLayer::if_not_present(header::CONTENT_SECURITY_POLICY, HeaderValue::from_static("default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'")))
-        .layer(SetResponseHeaderLayer::if_not_present(header::X_CONTENT_TYPE_OPTIONS, HeaderValue::from_static("nosniff")))
-        .layer(SetResponseHeaderLayer::if_not_present(header::X_FRAME_OPTIONS, HeaderValue::from_static("DENY")))
-        .layer(SetResponseHeaderLayer::if_not_present(header::STRICT_TRANSPORT_SECURITY, HeaderValue::from_static("max-age=63072000")));
+        .route("/search", get(|q| search(q, tantivy_index, http_requests)))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::CONTENT_SECURITY_POLICY,
+            HeaderValue::from_static(
+                "default-src 'none'; img-src 'self'; script-src 'self'; style-src 'self'",
+            ),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::X_CONTENT_TYPE_OPTIONS,
+            HeaderValue::from_static("nosniff"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::X_FRAME_OPTIONS,
+            HeaderValue::from_static("DENY"),
+        ))
+        .layer(SetResponseHeaderLayer::if_not_present(
+            header::STRICT_TRANSPORT_SECURITY,
+            HeaderValue::from_static("max-age=63072000"),
+        ));
 
-    tracing::info!("Application started");
-    axum::Server::bind(&"0.0.0.0:8080".parse().unwrap())
-        .serve(app.into_make_service())
-        .await
-        .unwrap();
+    let app_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);    
+    let app_server =
+        axum::Server::bind(&app_addr).serve(app.into_make_service());
+    tracing::info!("Application listening on {app_addr}");
+
+    // Create metrics server
+    let metrics_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 9091);
+    let arc_registry = Arc::new(registry);
+    let metrics_server = axum::Server::bind(&metrics_addr).serve(make_service_fn(move |_conn| {
+        let registry = arc_registry.clone();
+        async move {
+            let handler = make_handler(registry);
+            Ok::<_, io::Error>(service_fn(handler))
+        }
+    }));
+    tracing::info!("Metrics server listening on {metrics_addr}");
+
+    // Start both servers
+    future::join(app_server, metrics_server).await;
+}
+
+/// This function returns a HTTP handler (i.e. another function)
+pub fn make_handler(
+    registry: Arc<Registry>,
+) -> impl Fn(Request<Body>) -> Pin<Box<dyn Future<Output = io::Result<Response<Body>>> + Send>> {
+    // This closure accepts a request and responds with the OpenMetrics encoding of the metrics.
+    move |_req: Request<Body>| {
+        let reg = registry.clone();
+        Box::pin(async move {
+            let mut buf = Vec::new();
+            encode(&mut buf, &reg.clone()).map(|_| {
+                let body = Body::from(buf);
+                Response::builder()
+                    .header(
+                        hyper::header::CONTENT_TYPE,
+                        "application/openmetrics-text; version=1.0.0; charset=utf-8",
+                    )
+                    .body(body)
+                    .unwrap()
+            })
+        })
+    }
 }
 
 #[allow(clippy::unused_async)]
@@ -53,7 +131,14 @@ async fn handle_error(_err: io::Error) -> impl IntoResponse {
 }
 
 #[allow(clippy::unused_async)]
-async fn search(Query(params): Query<HashMap<String, String>>, index: Index) -> impl IntoResponse {
+async fn search(
+    Query(params): Query<HashMap<String, String>>,
+    index: Index,
+    http_requests: Family<Label, Counter>,
+) -> impl IntoResponse {
+    http_requests
+        .get_or_create(&(String::from("GET"), String::from("/search")))
+        .inc();
     let search_term: String = params
         .get("q")
         .unwrap()
