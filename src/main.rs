@@ -232,27 +232,34 @@ fn add_book(book: IndexableBook, index: &Index) {
 
     let mut doc = book.epub_file;
 
-    for i in book.first_chapter_index..=book.last_chapter_index {
-        if book.skippable_chapters.contains(&i) {
+    for chapter_index in book.first_chapter_index..=book.last_chapter_index {
+        if book.skippable_chapters.contains(&chapter_index) {
             continue;
         }
-        doc.set_current_page(i)
+        doc.set_current_page(chapter_index)
             .expect("Indexes used in `skippable_chapters` must be valid");
-        let chapter_title = doc.spine[i].clone();
+        let chapter_title = doc.spine[chapter_index].clone();
         let this_page = doc.get_current().unwrap();
         let page_content = from_read(&this_page[..], usize::MAX);
-        for line in page_content.lines() {
-            if line.is_empty() {
-                continue;
-            }
-            if line.starts_with('[') {
-                continue;
-            }
+        for (i, line) in page_content.lines()
+            .filter(|it| !it.trim().is_empty())
+            .filter(|it| !it.trim().starts_with('['))
+            .filter(|it| !it.trim().starts_with('<'))
+            .enumerate() {
+            let prev: Option<&str> = if i > 0 {
+                page_content.lines().nth(i - 1)
+            } else {
+                None
+            };
+            let next: Option<&str> = page_content.lines().nth(i + 1);
+            let prev_line = prev.map_or_else(String::new, |s| format!("{}</p><p>", s));
+            let next_line = next.map_or_else(String::new, |s| format!("</p><p>{}", s));
+            let paragraph_with_context = format!("{}{}{}", prev_line, line, next_line);
             index_writer
                 .add_document(doc!(
                     book_field => book.title.clone(),
                     chapter_field => pretty_chapter(&chapter_title),
-                    paragraph_field => line))
+                    paragraph_field => paragraph_with_context))
                 .unwrap();
         }
     }
