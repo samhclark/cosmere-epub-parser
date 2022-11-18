@@ -58,7 +58,7 @@
                   <span class="font-normal">{{ result.chapter }}</span></cite
                 >
               </h3>
-              <p>{{ result.text }}</p>
+              <p>{{ result.text|safe }}</p>
             </article>
           </li>
           {% endfor %}
