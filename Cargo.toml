@@ -1,5 +1,5 @@
 [package]
-name = "cosmere-epub-parser"
+name = "cosmere_search_web_server"
 version = "0.1.0"
 edition = "2021"
 
