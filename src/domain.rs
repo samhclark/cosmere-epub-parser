@@ -5,14 +5,6 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Response},
 };
-use serde::Deserialize;
-
-#[derive(Debug, Deserialize)]
-pub struct InputSchema {
-    pub book_title: String,
-    pub chapter_title: String,
-    pub searchable_text: String,
-}
 
 impl Display for RichParagraph {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
