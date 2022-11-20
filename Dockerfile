@@ -11,6 +11,7 @@ RUN apt-get update --quiet --assume-yes \
 
 COPY --from=builder /usr/local/cargo/bin/cosmere_search_web_server /usr/local/bin/cosmere_search_web_server
 COPY ./assets/* /assets/
-COPY ./*.epub /
+COPY ./input.json /input.json
 EXPOSE 8080
+EXPOSE 9091
 ENTRYPOINT ["/usr/bin/dumb-init", "--", "/usr/local/bin/cosmere_search_web_server"]
