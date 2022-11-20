@@ -14,3 +14,7 @@ check:
 # Runs unit tests
 test:
 	cargo test --locked
+
+# Run load test against the prod server
+load_test:
+	k6 run ./k6/script.js
