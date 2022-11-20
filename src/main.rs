@@ -1,7 +1,8 @@
 use std::{
     collections::HashMap,
+    fs::File,
     future::Future,
-    io,
+    io::{self, BufRead},
     net::{IpAddr, Ipv4Addr, SocketAddr},
     pin::Pin,
     sync::Arc,
@@ -14,9 +15,8 @@ use axum::{
     routing::{get, get_service},
     Router,
 };
-use domain::{HtmlTemplate, IndexableBook, ResultsTemplate, RichParagraph};
+use domain::{HtmlTemplate, InputSchema, ResultsTemplate, RichParagraph};
 use futures::future;
-use html2text::from_read;
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response,
@@ -35,7 +35,6 @@ use tantivy::{
 use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 use tracing::Level;
 
-mod books;
 mod domain;
 
 type Label = (String, String);
@@ -52,11 +51,8 @@ async fn main() {
         Box::new(http_requests.clone()),
     );
 
-    let books = books::load_all();
     let tantivy_index = build_search_index();
-    for book in books {
-        add_book(book, &tantivy_index);
-    }
+    load_search_index(&tantivy_index);
 
     // Create application server
     let app = Router::new()
@@ -81,9 +77,8 @@ async fn main() {
             HeaderValue::from_static("max-age=63072000"),
         ));
 
-    let app_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);    
-    let app_server =
-        axum::Server::bind(&app_addr).serve(app.into_make_service());
+    let app_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);
+    let app_server = axum::Server::bind(&app_addr).serve(app.into_make_service());
     tracing::info!("Application listening on {app_addr}");
 
     // Create metrics server
@@ -195,15 +190,6 @@ async fn search(
     HtmlTemplate(template)
 }
 
-#[allow(dead_code)]
-/// My own method for helping "look at" a book that I'm trying to load
-fn inspect(book: &IndexableBook) {
-    println!("Spine: ");
-    for (i, s) in book.epub_file.spine.iter().enumerate() {
-        println!("{}\t{}", i, s);
-    }
-}
-
 fn build_search_index() -> Index {
     let mut schema_builder = Schema::builder();
 
@@ -220,66 +206,27 @@ fn build_search_index() -> Index {
     schema_builder.add_text_field("paragraph", text_options);
     let schema = schema_builder.build();
 
-    Index::create_from_tempdir(schema).expect("Building index in tempdir should not fail")
+    Index::create_in_ram(schema)
 }
 
-fn add_book(book: IndexableBook, index: &Index) {
+fn load_search_index(index: &Index) {
     let mut index_writer = index.writer(128_000_000).unwrap();
 
     let book_field = index.schema().get_field("book_title").unwrap();
     let chapter_field = index.schema().get_field("chapter_title").unwrap();
     let paragraph_field = index.schema().get_field("paragraph").unwrap();
 
-    let mut doc = book.epub_file;
-
-    for chapter_index in book.first_chapter_index..=book.last_chapter_index {
-        if book.skippable_chapters.contains(&chapter_index) {
-            continue;
-        }
-        doc.set_current_page(chapter_index)
-            .expect("Indexes used in `skippable_chapters` must be valid");
-        let chapter_title = doc.spine[chapter_index].clone();
-        let this_page = doc.get_current().unwrap();
-        let page_content = from_read(&this_page[..], usize::MAX);
-        for (i, line) in page_content.lines()
-            .filter(|it| !it.trim().is_empty())
-            .filter(|it| !it.trim().starts_with('['))
-            .filter(|it| !it.trim().starts_with('<'))
-            .enumerate() {
-            let prev: Option<&str> = if i > 0 {
-                page_content.lines().nth(i - 1)
-            } else {
-                None
-            };
-            let next: Option<&str> = page_content.lines().nth(i + 1);
-            let prev_line = prev.map_or_else(String::new, |s| format!("{}</p><p>", s));
-            let next_line = next.map_or_else(String::new, |s| format!("</p><p>{}", s));
-            let paragraph_with_context = format!("{}{}{}", prev_line, line, next_line);
-            index_writer
-                .add_document(doc!(
-                    book_field => book.title.clone(),
-                    chapter_field => pretty_chapter(&chapter_title),
-                    paragraph_field => paragraph_with_context))
-                .unwrap();
-        }
+    let infile = File::open("input.json").expect("input file is required");
+    let file_writer = io::BufReader::new(infile);
+    for line in file_writer.lines() {
+        let data: InputSchema = serde_json::from_str(line.unwrap().as_str()).unwrap();
+        index_writer
+            .add_document(doc!(
+                    book_field => data.book_title,
+                    chapter_field => data.chapter_title,
+                    paragraph_field => data.searchable_text))
+            .unwrap();
     }
 
     index_writer.commit().unwrap();
-}
-
-fn pretty_chapter(raw_chapter: &str) -> String {
-    if raw_chapter.to_ascii_lowercase() == "prologue" {
-        String::from("Prologue")
-    } else if raw_chapter.to_ascii_lowercase() == "epilogue" {
-        String::from("Epilogue")
-    } else if raw_chapter.to_ascii_lowercase().starts_with("chapter") {
-        let num: String = raw_chapter
-            .chars()
-            .into_iter()
-            .filter(char::is_ascii_digit)
-            .collect();
-        format!("Chapter {num}")
-    } else {
-        String::from(raw_chapter)
-    }
 }

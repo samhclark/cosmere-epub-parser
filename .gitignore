@@ -1,5 +1,3 @@
 /target
-*.csv
-*.epub
 *.json
 /tantivy-index
