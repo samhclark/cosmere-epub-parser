@@ -1,6 +1,4 @@
 use std::{
-    collections::HashMap,
-
     future::Future,
     io,
     net::{IpAddr, Ipv4Addr, SocketAddr},
@@ -9,29 +7,22 @@ use std::{
 };
 
 use axum::{
-    extract::Query,
     http::{header, HeaderValue, StatusCode},
     response::IntoResponse,
     routing::{get, get_service},
     Router,
 };
-use domain::{HtmlTemplate,  ResultsTemplate, RichParagraph};
+
 use futures::future;
 use hyper::{
     service::{make_service_fn, service_fn},
     Body, Request, Response,
 };
 use prometheus_client::encoding::text::encode;
-use prometheus_client::metrics::counter::Counter;
-use prometheus_client::metrics::family::Family;
+
 use prometheus_client::registry::Registry;
 use search_index::TantivyWrapper;
-use tantivy::{
-    collector::TopDocs,
-    query::QueryParser,
 
-    DocAddress, Score,
-};
 use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer};
 use tracing::Level;
 
@@ -40,6 +31,7 @@ use metrics_wrapper::MetricsWrapper;
 mod domain;
 mod search_index;
 mod metrics_wrapper;
+mod main_controller;
 
 #[allow(unused_must_use)]
 #[tokio::main]
@@ -52,7 +44,7 @@ async fn main() {
     // Create application server
     let app = Router::new()
         .fallback(get_service(ServeDir::new("./assets")).handle_error(handle_error))
-        .route("/search", get(|q| search(q, tantivy_wrapper, metrics.http_requests)))
+        .route("/search", get(|q| main_controller::search(q, tantivy_wrapper, metrics.http_requests)))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CONTENT_SECURITY_POLICY,
             HeaderValue::from_static(
@@ -120,63 +112,4 @@ async fn handle_error(_err: io::Error) -> impl IntoResponse {
     (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong...")
 }
 
-#[allow(clippy::unused_async)]
-async fn search(
-    Query(params): Query<HashMap<String, String>>,
-    tantivy: Arc<TantivyWrapper>,
-    http_requests: Family<(String, String), Counter>,
-) -> impl IntoResponse {
-    http_requests
-        .get_or_create(&(String::from("GET"), String::from("/search")))
-        .inc();
-    let search_term: String = params
-        .get("q")
-        .unwrap()
-        .trim()
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || c == &' ')
-        .collect();
-    tracing::info!("Searched for \"{}\"", search_term);
-    let reader = tantivy.index.reader().unwrap();
 
-    let searcher = reader.searcher();
-    let query_parser = QueryParser::for_index(&tantivy.index, vec![tantivy.searchable_text]);
-
-    // QueryParser may fail if the query is not in the right format
-    // TODO: toss up a 400 Bad Request when that happens
-    let query = query_parser.parse_query(&search_term).unwrap();
-
-    let top_docs: Vec<(Score, DocAddress)> =
-        searcher.search(&query, &TopDocs::with_limit(20)).unwrap();
-
-    let mut results: Vec<RichParagraph> = vec![];
-    for (_score, doc_address) in top_docs {
-        let retrieved_doc = searcher.doc(doc_address).unwrap();
-        results.push(RichParagraph {
-            book: retrieved_doc
-                .get_first(tantivy.book)
-                .unwrap()
-                .as_text()
-                .unwrap()
-                .to_string(),
-            chapter: retrieved_doc
-                .get_first(tantivy.chapter)
-                .unwrap()
-                .as_text()
-                .unwrap()
-                .to_string(),
-            text: retrieved_doc
-                .get_first(tantivy.searchable_text)
-                .unwrap()
-                .as_text()
-                .unwrap()
-                .to_string(),
-        });
-    }
-
-    let template = ResultsTemplate {
-        search_term: search_term.clone(),
-        search_results: results,
-    };
-    HtmlTemplate(template)
-}

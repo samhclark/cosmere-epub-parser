@@ -18,9 +18,7 @@ prometheus-client = "0.18.1"
 futures = "0.3"
 
 [profile.dev]
-debug = 0
+debug = true
 
 [profile.release]
-debug = 0
-strip = "symbols"
-incremental = false
+debug = true

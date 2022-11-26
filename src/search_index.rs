@@ -6,7 +6,7 @@ use std::{
 use tantivy::{
     doc,
     Index,
-    schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, TEXT},
+    schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, TEXT}, IndexReader,
 };
 
 use serde::Deserialize;
@@ -20,6 +20,7 @@ struct InputSchema {
 
 pub struct TantivyWrapper {
     pub index: Index,
+    pub reader: IndexReader,
     pub book: Field,
     pub chapter: Field,
     pub searchable_text: Field,
@@ -27,6 +28,7 @@ pub struct TantivyWrapper {
 
 impl TantivyWrapper {
     pub fn build() -> Self {
+        println!("inside build");
         let wrapper = create_empty_index();
         load_search_index(&wrapper);
     
@@ -35,6 +37,7 @@ impl TantivyWrapper {
 }
 
 fn create_empty_index() -> TantivyWrapper {
+    println!("inside create");
     let mut schema_builder = Schema::builder();
 
     let text_options = TextOptions::default()
@@ -50,10 +53,13 @@ fn create_empty_index() -> TantivyWrapper {
     let searchable_text: Field = schema_builder.add_text_field("paragraph", text_options);
     let schema = schema_builder.build();
 
-    let index = Index::create_in_ram(schema);
+    let index = Index::create_from_tempdir(schema).unwrap();
+    // index.set_multithread_executor(16).unwrap();
+    let reader = index.reader().unwrap();
 
     TantivyWrapper {
         index,
+        reader,
         book,
         chapter,
         searchable_text,
@@ -61,6 +67,7 @@ fn create_empty_index() -> TantivyWrapper {
 }
 
 fn load_search_index(tantivy: &TantivyWrapper) {
+    println!("inside load");
     let mut index_writer = tantivy.index.writer(128_000_000).unwrap();
 
     let infile = File::open("input.json").expect("input file is required");
@@ -76,4 +83,5 @@ fn load_search_index(tantivy: &TantivyWrapper) {
     }
 
     index_writer.commit().unwrap();
+    tantivy.reader.reload().unwrap();
 }
