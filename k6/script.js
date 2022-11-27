@@ -7,7 +7,7 @@ export const options = {
   scenarios: {
     open_model: {
       executor: "constant-arrival-rate",
-      rate: 8192, // 128 req/s makes the server fall over after about 30s
+      rate: 256, // 512 req/s makes the server fall over after about a minute
       timeUnit: "1s",
       duration: "1m",
       preAllocatedVUs: 400,

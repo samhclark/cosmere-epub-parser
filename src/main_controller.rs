@@ -1,36 +1,27 @@
-use std::{collections::HashMap, sync::Arc};
+use axum::{extract::{Query, State}, response::IntoResponse};
+use serde::Deserialize;
+use tantivy::{collector::TopDocs, query::QueryParser, DocAddress, Score};
 
-use axum::{extract::Query, response::IntoResponse};
-use prometheus_client::metrics::{family::Family, counter::Counter};
-#[allow(clippy::unused_async)]
-use tantivy::{
-    collector::TopDocs,
-    query::QueryParser,
-
-    DocAddress, Score,
+use crate::{
+    domain::{HtmlTemplate, ResultsTemplate, RichParagraph},
+    AppState,
 };
 
-use crate::{search_index::TantivyWrapper, domain::{RichParagraph, ResultsTemplate, HtmlTemplate}};
-
+/// GET /search
+#[allow(clippy::unused_async)]
 pub async fn search(
-    Query(params): Query<HashMap<String, String>>,
-    tantivy: Arc<TantivyWrapper>,
-    http_requests: Family<(String, String), Counter>,
+    Query(params): Query<Params>,
+    State(state): State<AppState>
 ) -> impl IntoResponse {
-    http_requests
-        .get_or_create(&(String::from("GET"), String::from("/search")))
-        .inc();
-    let search_term: String = params
-        .get("q")
-        .unwrap()
+    let search_term: String = params.q
         .trim()
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || c == &' ')
         .collect();
     tracing::info!("Searched for \"{}\"", search_term);
 
-    let searcher = tantivy.reader.searcher();
-    let query_parser = QueryParser::for_index(&tantivy.index, vec![tantivy.searchable_text]);
+    let searcher = state.tantivy.reader.searcher();
+    let query_parser = QueryParser::for_index(&state.tantivy.index, vec![state.tantivy.searchable_text]);
 
     // QueryParser may fail if the query is not in the right format
     // TODO: toss up a 400 Bad Request when that happens
@@ -44,19 +35,19 @@ pub async fn search(
         let retrieved_doc = searcher.doc(doc_address).unwrap();
         results.push(RichParagraph {
             book: retrieved_doc
-                .get_first(tantivy.book)
+                .get_first(state.tantivy.book)
                 .unwrap()
                 .as_text()
                 .unwrap()
                 .to_string(),
             chapter: retrieved_doc
-                .get_first(tantivy.chapter)
+                .get_first(state.tantivy.chapter)
                 .unwrap()
                 .as_text()
                 .unwrap()
                 .to_string(),
             text: retrieved_doc
-                .get_first(tantivy.searchable_text)
+                .get_first(state.tantivy.searchable_text)
                 .unwrap()
                 .as_text()
                 .unwrap()
@@ -69,4 +60,9 @@ pub async fn search(
         search_results: results,
     };
     HtmlTemplate(template)
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Params {
+    q: String,
 }
