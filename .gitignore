@@ -1,3 +1,5 @@
 /target
 *.json
 /tantivy-index
+flamegraph.svg
+perf.data

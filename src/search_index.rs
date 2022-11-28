@@ -5,8 +5,8 @@ use std::{
 
 use tantivy::{
     doc,
-    Index,
     schema::{Field, IndexRecordOption, Schema, TextFieldIndexing, TextOptions, STORED, TEXT},
+    Index, IndexReader,
 };
 
 use serde::Deserialize;
@@ -18,18 +18,19 @@ struct InputSchema {
     searchable_text: String,
 }
 
+#[derive(Clone)]
 pub struct TantivyWrapper {
     pub index: Index,
+    pub reader: IndexReader,
     pub book: Field,
     pub chapter: Field,
     pub searchable_text: Field,
 }
 
 impl TantivyWrapper {
-    pub fn build() -> Self {
+    pub fn new() -> Self {
         let wrapper = create_empty_index();
         load_search_index(&wrapper);
-    
         wrapper
     }
 }
@@ -50,10 +51,12 @@ fn create_empty_index() -> TantivyWrapper {
     let searchable_text: Field = schema_builder.add_text_field("paragraph", text_options);
     let schema = schema_builder.build();
 
-    let index = Index::create_in_ram(schema);
+    let index = Index::create_from_tempdir(schema).unwrap();
+    let reader = index.reader().unwrap();
 
     TantivyWrapper {
         index,
+        reader,
         book,
         chapter,
         searchable_text,
@@ -76,4 +79,5 @@ fn load_search_index(tantivy: &TantivyWrapper) {
     }
 
     index_writer.commit().unwrap();
+    tantivy.reader.reload().unwrap();
 }

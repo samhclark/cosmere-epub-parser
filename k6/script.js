@@ -7,10 +7,10 @@ export const options = {
   scenarios: {
     open_model: {
       executor: "constant-arrival-rate",
-      rate: 64, // 128 req/s makes the server fall over after about 30s
+      rate: 128, // 512 req/s makes the server fall over after about a minute, 128 req/s is stable in prod with a 6% failure rate
       timeUnit: "1s",
-      duration: "1m",
-      preAllocatedVUs: 100,
+      duration: "5m",
+      preAllocatedVUs: 200,
     },
   },
 };
@@ -25,5 +25,6 @@ const data = new SharedArray('some name', function () {
 export default function () {
   let randomWord = data[Math.floor(Math.random() * data.length)];
   http.get(`https://csearch.samhclark.com/search?q=${randomWord}`);
-//   http.get(`http://127.0.0.1:8080/search?q=${randomWord}`);
+  // http.get(`http://127.0.0.1:8080/search?q=${randomWord}`);
+  // http.get(`http://127.0.0.1:8080`);
 }
