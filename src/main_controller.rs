@@ -1,31 +1,75 @@
-use axum::{extract::{Query, State}, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse};
+use axum_extra::extract::Form;
 use serde::Deserialize;
 use tantivy::{collector::TopDocs, query::QueryParser, DocAddress, Score};
 
 use crate::{
-    domain::{HtmlTemplate, ResultsTemplate, RichParagraph},
+    domain::{BookState, HtmlTemplate, ResultsTemplate, RichParagraph},
     AppState,
 };
+
+struct Book<'a> {
+    short_name: &'a str,
+    long_name: &'a str,
+}
+
+const SEARCHABLE_BOOKS: &[&Book] = &[
+    &Book {
+        short_name: "aol",
+        long_name: "The Alloy of Law",
+    },
+    &Book {
+        short_name: "sos",
+        long_name: "Shadows of Self",
+    },
+    &Book {
+        short_name: "bom",
+        long_name: "Bands of Mourning",
+    },
+    &Book {
+        short_name: "sh",
+        long_name: "Secret History",
+    },
+];
 
 /// GET /search
 #[allow(clippy::unused_async)]
 pub async fn search(
-    Query(params): Query<Params>,
-    State(state): State<AppState>
+    State(state): State<AppState>,
+    Form(params): Form<Params>,
 ) -> impl IntoResponse {
-    let search_term: String = params.q
+    let search_term: String = params
+        .query
         .trim()
         .chars()
         .filter(|c| c.is_ascii_alphanumeric() || c == &' ')
         .collect();
-    tracing::info!("Searched for \"{}\"", search_term);
+
+    let search_books: Vec<String> = params
+        .books
+        .into_iter()
+        .filter_map(|it| get_title(&it))
+        .collect();
+    tracing::info!("Searched for \"{}\" in {:?}", search_term, search_books);
 
     let searcher = state.tantivy.reader.searcher();
-    let query_parser = QueryParser::for_index(&state.tantivy.index, vec![state.tantivy.searchable_text]);
 
-    // QueryParser may fail if the query is not in the right format
-    // TODO: toss up a 400 Bad Request when that happens
-    let query = query_parser.parse_query(&search_term).unwrap();
+    let query_parser = QueryParser::for_index(
+        &state.tantivy.index,
+        vec![state.tantivy.book, state.tantivy.searchable_text],
+    );
+    let big_search = if search_books.is_empty() {
+        search_term.clone()
+    } else {
+        let book_filter_query = search_books
+            .iter()
+            .map(|it| format!("book_title:\"{}\"", it))
+            .collect::<Vec<String>>()
+            .join(" OR ");
+        format!("({}) AND paragraph:\"{}\"", book_filter_query, search_term)
+    };
+    tracing::debug!("Constructed query is {}", &big_search);
+    let query = query_parser.parse_query(&big_search).unwrap();
 
     let top_docs: Vec<(Score, DocAddress)> =
         searcher.search(&query, &TopDocs::with_limit(20)).unwrap();
@@ -55,14 +99,36 @@ pub async fn search(
         });
     }
 
+    let search_state = SEARCHABLE_BOOKS
+        .iter()
+        .map(|it| BookState {
+            title: String::from(it.long_name),
+            short_name: String::from(it.short_name),
+            checked: search_books.contains(&String::from(it.long_name)),
+        })
+        .collect();
     let template = ResultsTemplate {
-        search_term: search_term.clone(),
+        search_term,
         search_results: results,
+        search_state,
     };
     HtmlTemplate(template)
 }
 
+fn get_title(abbr: &String) -> Option<String> {
+    for &book in SEARCHABLE_BOOKS.iter() {
+        if book.short_name == abbr {
+            return Some(String::from(book.long_name));
+        }
+    }
+    None
+}
+
 #[derive(Debug, Deserialize)]
 pub struct Params {
-    q: String,
+    #[serde(default, rename = "q")]
+    query: String,
+
+    #[serde(default, rename = "book")]
+    books: Vec<String>,
 }

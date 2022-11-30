@@ -19,11 +19,19 @@ pub struct RichParagraph {
     pub text: String,
 }
 
+#[derive(Debug)]
+pub struct BookState {
+    pub title: String,
+    pub short_name: String,
+    pub checked: bool,
+}
+
 #[derive(Template)]
 #[template(path = "results.html")]
 pub struct ResultsTemplate {
     pub search_term: String,
     pub search_results: Vec<RichParagraph>,
+    pub search_state: Vec<BookState>,
 }
 
 pub struct HtmlTemplate<T>(pub T);
