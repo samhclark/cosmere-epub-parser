@@ -11,10 +11,7 @@ use axum::{
 };
 use search_index::TantivyWrapper;
 
-use tower_http::{
-    services::ServeDir, 
-    set_header::SetResponseHeaderLayer,
-};
+use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer, trace::TraceLayer};
 use tracing::Level;
 
 mod domain;
@@ -29,7 +26,9 @@ pub struct AppState {
 #[allow(unused_must_use)]
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
+    tracing_subscriber::fmt()
+        .with_max_level(Level::TRACE)
+        .init();
 
     let tantivy_wrapper = TantivyWrapper::new();
 
@@ -38,10 +37,7 @@ async fn main() {
     let app = Router::new()
         .nest_service("/", serve_dir.clone())
         .fallback_service(serve_dir)
-        .route(
-            "/search",
-            get(main_controller::search),
-        )
+        .route("/search", get(main_controller::search))
         .layer(SetResponseHeaderLayer::if_not_present(
             header::CONTENT_SECURITY_POLICY,
             HeaderValue::from_static(
@@ -60,11 +56,16 @@ async fn main() {
             header::STRICT_TRANSPORT_SECURITY,
             HeaderValue::from_static("max-age=63072000"),
         ))
-        .with_state(AppState { tantivy: tantivy_wrapper });
+        .layer(TraceLayer::new_for_http())
+        .with_state(AppState {
+            tantivy: tantivy_wrapper,
+        });
 
     let app_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);
     tracing::info!("Application listening on {app_addr}");
-    axum::Server::bind(&app_addr).serve(app.into_make_service()).await;
+    axum::Server::bind(&app_addr)
+        .serve(app.into_make_service())
+        .await;
 }
 
 #[allow(clippy::unused_async)]

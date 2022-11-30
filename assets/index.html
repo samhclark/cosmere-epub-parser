@@ -28,7 +28,7 @@
             Search the Cosmere<br />
             <input
               class="query"
-              type="text"
+              type="search"
               size="40"
               name="q"
               autocomplete="off"
@@ -36,6 +36,25 @@
             />
           </label>
           <button>Search</button>
+          <fieldset>
+            <legend>Choose which books to search</legend>
+            <label>
+              <input type="checkbox" name="book" value="aol" checked />
+              The Alloy of Law
+            </label>
+            <label>
+              <input type="checkbox" name="book" value="sos" checked />
+              Shadows of Self
+            </label>
+            <label>
+              <input type="checkbox" name="book" value="bom" checked />
+              Bands of Mourning
+            </label>
+            <label>
+              <input type="checkbox" name="book" value="sh" checked />
+              Secret History
+            </label>
+          </fieldset>
         </form>
       </header>
     </main>
