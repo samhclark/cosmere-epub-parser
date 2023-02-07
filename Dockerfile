@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.65-slim-buster as builder 
+FROM docker.io/library/rust:1.67-slim-buster as builder 
 WORKDIR /usr/src/myapp
 COPY . .
 RUN cargo install --path .
