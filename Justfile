@@ -18,3 +18,7 @@ test:
 # Run load test against the prod server
 load_test:
 	k6 run ./k6/script.js
+
+# Run the server locally
+run:
+	cargo run 
