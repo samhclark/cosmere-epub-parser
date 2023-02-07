@@ -25,4 +25,4 @@ run:
 
 # Build and deploy the version on this branch to prod
 deploy:
-	fly deploy
+	flyctl deploy
