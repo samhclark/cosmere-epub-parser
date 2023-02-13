@@ -14,7 +14,8 @@
       name="description"
       content="Full-text search for Brandon Sanderson's Cosmere"
     >
-    <meta name="color-scheme" content="dark light">
+    <meta name="theme-color" content="#298460">
+    <meta name="color-scheme" content="light">
     <meta name="robots" content="noindex">
     <title>CSearch</title>
     <link href="styles.css" rel="stylesheet" />
@@ -40,7 +41,7 @@
             <legend>Choose which books to search</legend>
             {% for book in search_state %}
             <label>
-              <input type="checkbox" name="book" value="{{ book.short_name }}" {% if book.checked %} checked {% endif %} />
+              <input class="checkbox" type="checkbox" name="book" value="{{ book.short_name }}" {% if book.checked %} checked {% endif %} />
               {{ book.title }}
             </label>
             {% endfor %}
