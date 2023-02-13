@@ -58,7 +58,7 @@ pub async fn search(
         &state.tantivy.index,
         vec![state.tantivy.book, state.tantivy.searchable_text],
     );
-    let big_search = if search_books.is_empty() {
+    let complete_query_text = if search_books.is_empty() || search_term.trim().is_empty() {
         search_term.clone()
     } else {
         let book_filter_query = search_books
@@ -68,8 +68,8 @@ pub async fn search(
             .join(" OR ");
         format!("({}) AND paragraph:\"{}\"", book_filter_query, search_term)
     };
-    tracing::debug!("Constructed query is {}", &big_search);
-    let query = query_parser.parse_query(&big_search).unwrap();
+    tracing::debug!("Constructed query is {}", &complete_query_text);
+    let query = query_parser.parse_query(&complete_query_text).unwrap();
 
     let top_docs: Vec<(Score, DocAddress)> =
         searcher.search(&query, &TopDocs::with_limit(20)).unwrap();
