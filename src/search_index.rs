@@ -42,7 +42,7 @@ fn create_empty_index() -> TantivyWrapper {
         .set_indexing_options(
             TextFieldIndexing::default()
                 .set_tokenizer("en_stem")
-                .set_index_option(IndexRecordOption::Basic),
+                .set_index_option(IndexRecordOption::WithFreqsAndPositions),
         )
         .set_stored();
 
