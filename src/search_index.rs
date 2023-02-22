@@ -16,6 +16,7 @@ struct InputSchema {
     book_title: String,
     chapter_title: String,
     searchable_text: String,
+    display_text: String,
 }
 
 #[derive(Clone)]
@@ -25,6 +26,7 @@ pub struct TantivyWrapper {
     pub book: Field,
     pub chapter: Field,
     pub searchable_text: Field,
+    pub passage: Field,
 }
 
 impl TantivyWrapper {
@@ -49,6 +51,7 @@ fn create_empty_index() -> TantivyWrapper {
     let book: Field = schema_builder.add_text_field("book_title", TEXT | STORED);
     let chapter: Field = schema_builder.add_text_field("chapter_title", TEXT | STORED);
     let searchable_text: Field = schema_builder.add_text_field("paragraph", text_options);
+    let passage: Field =  schema_builder.add_text_field("passage", TEXT | STORED);
     let schema = schema_builder.build();
 
     let index = Index::create_from_tempdir(schema).unwrap();
@@ -60,6 +63,7 @@ fn create_empty_index() -> TantivyWrapper {
         book,
         chapter,
         searchable_text,
+        passage,
     }
 }
 
@@ -74,7 +78,9 @@ fn load_search_index(tantivy: &TantivyWrapper) {
             .add_document(doc!(
                 tantivy.book => data.book_title,
                 tantivy.chapter => data.chapter_title,
-                tantivy.searchable_text => data.searchable_text))
+                tantivy.searchable_text => data.searchable_text,
+                tantivy.passage => data.display_text,
+            ))
             .unwrap();
     }
 
