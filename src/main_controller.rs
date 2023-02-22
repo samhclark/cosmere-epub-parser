@@ -30,6 +30,14 @@ const SEARCHABLE_BOOKS: &[&Book] = &[
         short_name: "sh",
         long_name: "Secret History",
     },
+    &Book {
+        short_name: "wb",
+        long_name: "Warbreaker",
+    },
+    &Book {
+        short_name: "tes",
+        long_name: "The Emperor's Soul",
+    },
 ];
 
 /// GET /search
@@ -91,7 +99,7 @@ pub async fn search(
                 .unwrap()
                 .to_string(),
             text: retrieved_doc
-                .get_first(state.tantivy.searchable_text)
+                .get_first(state.tantivy.passage)
                 .unwrap()
                 .as_text()
                 .unwrap()
