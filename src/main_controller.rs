@@ -71,10 +71,10 @@ pub async fn search(
     } else {
         let book_filter_query = search_books
             .iter()
-            .map(|it| format!("book_title:\"{}\"", it))
+            .map(|it| format!("book_title:\"{it}\""))
             .collect::<Vec<String>>()
             .join(" OR ");
-        format!("({}) AND paragraph:\"{}\"", book_filter_query, search_term)
+        format!("({book_filter_query}) AND paragraph:\"{search_term}\"")
     };
     tracing::debug!("Constructed query is {}", &complete_query_text);
     let query = query_parser.parse_query(&complete_query_text).unwrap();
