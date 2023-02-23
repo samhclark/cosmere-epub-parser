@@ -64,7 +64,7 @@
           <li class="card">
             <article>
               <h3>
-                <cite>{{ result.book }}, <span class="font-normal">{{ result.chapter }}</span></cite>
+                <cite>{{ result.book }}{% if !result.chapter.is_empty() %}, <span class="font-normal">{{ result.chapter }}{% endif %}</span></cite>
               </h3>
               <p>{{ result.text|safe }}</p>
             </article>
