@@ -1,11 +1,9 @@
 use std::{
-    io,
     net::{IpAddr, Ipv4Addr, SocketAddr},
 };
 
 use axum::{
-    http::{header, HeaderValue, StatusCode},
-    response::IntoResponse,
+    http::{header, HeaderValue},
     routing::{get, get_service},
     Router,
 };
