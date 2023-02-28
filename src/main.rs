@@ -1,6 +1,4 @@
-use std::{
-    net::{IpAddr, Ipv4Addr, SocketAddr},
-};
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use axum::{
     http::{header, HeaderValue},
@@ -24,9 +22,7 @@ pub struct AppState {
 #[allow(unused_must_use)]
 #[tokio::main]
 async fn main() {
-    tracing_subscriber::fmt()
-        .with_max_level(Level::INFO)
-        .init();
+    tracing_subscriber::fmt().with_max_level(Level::INFO).init();
 
     let tantivy_wrapper = TantivyWrapper::new();
 
@@ -65,4 +61,3 @@ async fn main() {
         .serve(app.into_make_service())
         .await;
 }
-

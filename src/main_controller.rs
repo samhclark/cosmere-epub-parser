@@ -40,8 +40,8 @@ const SEARCHABLE_BOOKS: &[&Book] = &[
     },
     &Book {
         short_name: "thoe",
-        long_name: "The Hope of Elantris"
-    }
+        long_name: "The Hope of Elantris",
+    },
 ];
 
 /// GET /search
