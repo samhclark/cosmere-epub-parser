@@ -32,7 +32,7 @@ async fn main() {
 
     let tantivy_wrapper = TantivyWrapper::new();
 
-    let serve_dir = get_service(ServeDir::new("./assets")).handle_error(handle_error);
+    let serve_dir = get_service(ServeDir::new("./assets"));
 
     let app = Router::new()
         .nest_service("/", serve_dir.clone())
@@ -68,7 +68,3 @@ async fn main() {
         .await;
 }
 
-#[allow(clippy::unused_async)]
-async fn handle_error(_err: io::Error) -> impl IntoResponse {
-    (StatusCode::INTERNAL_SERVER_ERROR, "Something went wrong...")
-}
