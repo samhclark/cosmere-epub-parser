@@ -1,8 +1,9 @@
 # fly.toml file generated for csearch-test on 2022-11-06T22:37:21-06:00
 
-app = "csearch-test"
+app = "csearch"
 kill_signal = "SIGINT"
 kill_timeout = 5
+primary_region = "ord"
 processes = []
 
 [env]

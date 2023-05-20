@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.68-slim-bullseye as builder 
+FROM docker.io/library/rust:1.69-slim-bullseye as builder 
 WORKDIR /usr/src/myapp
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY . .
