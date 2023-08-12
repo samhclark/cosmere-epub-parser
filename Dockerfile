@@ -1,10 +1,10 @@
-FROM docker.io/library/rust:1.70-slim-bullseye as builder 
+FROM docker.io/library/rust:1.71-slim-bookworm as builder 
 WORKDIR /usr/src/myapp
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY . .
 RUN cargo install --path .
 
-FROM docker.io/library/debian:bullseye-slim
+FROM docker.io/library/debian:bookworm-slim
 RUN apt-get update --quiet --assume-yes \
     && apt-get upgrade --quiet --assume-yes \
     && apt-get install dumb-init --quiet --assume-yes \
