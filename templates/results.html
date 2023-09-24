@@ -40,7 +40,7 @@
           <fieldset>
             <legend>Choose which books to search</legend>
             {% for book in search_state %}
-            <label>
+            <label class="book-checkbox">
               <input class="checkbox" type="checkbox" name="book" value="{{ book.short_name }}" {% if book.checked %} checked {% endif %} />
               {{ book.title }}
             </label>
