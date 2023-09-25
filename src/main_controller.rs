@@ -15,6 +15,10 @@ struct Book<'a> {
 
 const SEARCHABLE_BOOKS: &[&Book] = &[
     &Book {
+        short_name: "wok",
+        long_name: "The Way of Kings",
+    },
+    &Book {
         short_name: "aol",
         long_name: "The Alloy of Law",
     },
