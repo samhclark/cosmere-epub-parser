@@ -54,8 +54,10 @@
             no results  
           {% else if search_results.len() == 1 %} 
             1 result  
+          {% else if search_results.len() == total_matches %} 
+            {{ search_results.len() }} results
           {% else %} 
-            {{ search_results.len() }} results  
+            Top {{ search_results.len() }} results of {{ total_matches }} matches
           {% endif %}
           for &ldquo;{{ search_term }}&rdquo;
         </h2>

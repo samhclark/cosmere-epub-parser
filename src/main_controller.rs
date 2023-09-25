@@ -1,7 +1,7 @@
 use axum::{extract::State, response::IntoResponse};
 use axum_extra::extract::Form;
 use serde::Deserialize;
-use tantivy::{collector::TopDocs, query::QueryParser, DocAddress, Score};
+use tantivy::{collector::Count, collector::TopDocs, query::QueryParser, DocAddress, Score};
 
 use crate::{
     domain::{BookState, HtmlTemplate, ResultsTemplate, RichParagraph},
@@ -87,6 +87,7 @@ pub async fn search(
     tracing::debug!("Constructed query is {}", &complete_query_text);
     let query = query_parser.parse_query(&complete_query_text).unwrap();
 
+    let total_matches = searcher.search(&query, &Count).unwrap();
     let top_docs: Vec<(Score, DocAddress)> =
         searcher.search(&query, &TopDocs::with_limit(20)).unwrap();
 
@@ -126,6 +127,7 @@ pub async fn search(
     let template = ResultsTemplate {
         search_term,
         search_results: results,
+        total_matches,
         search_state,
     };
     HtmlTemplate(template)

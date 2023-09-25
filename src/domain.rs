@@ -31,6 +31,7 @@ pub struct BookState {
 pub struct ResultsTemplate {
     pub search_term: String,
     pub search_results: Vec<RichParagraph>,
+    pub total_matches: usize,
     pub search_state: Vec<BookState>,
 }
 
