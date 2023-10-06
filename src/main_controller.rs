@@ -134,7 +134,7 @@ pub async fn search(
 }
 
 fn get_title(abbr: &String) -> Option<String> {
-    for &book in SEARCHABLE_BOOKS.iter() {
+    for &book in SEARCHABLE_BOOKS {
         if book.short_name == abbr {
             return Some(String::from(book.long_name));
         }
