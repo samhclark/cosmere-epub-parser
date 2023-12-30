@@ -1,4 +1,4 @@
-FROM docker.io/library/rust:1.73-slim-bookworm as builder 
+FROM docker.io/library/rust:slim-bookworm as builder 
 WORKDIR /usr/src/myapp
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY . .

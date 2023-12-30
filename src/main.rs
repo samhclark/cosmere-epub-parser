@@ -7,6 +7,7 @@ use axum::{
 };
 use search_index::TantivyWrapper;
 
+use tokio::net::TcpListener;
 use tower_http::{services::ServeDir, set_header::SetResponseHeaderLayer, trace::TraceLayer};
 use tracing::Level;
 
@@ -57,7 +58,6 @@ async fn main() {
 
     let app_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0)), 8080);
     tracing::info!("Application listening on {app_addr}");
-    axum::Server::bind(&app_addr)
-        .serve(app.into_make_service())
-        .await;
+    let listener = TcpListener::bind(&app_addr).await.unwrap();
+    axum::serve(listener, app.into_make_service()).await;
 }
