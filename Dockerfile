@@ -1,10 +1,13 @@
-FROM docker.io/library/rust:slim-bookworm as builder 
+ARG debian_version=bookworm
+ARG rust_version=1.78.0
+FROM docker.io/library/rust:${rust_version}-slim-${debian_version} as builder 
 WORKDIR /usr/src/myapp
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY . .
 RUN cargo install --path .
 
-FROM docker.io/library/debian:bookworm-slim
+ARG debian_version
+FROM docker.io/library/debian:${debian_version}-slim
 RUN apt-get update --quiet --assume-yes \
     && apt-get upgrade --quiet --assume-yes \
     && apt-get install dumb-init --quiet --assume-yes \

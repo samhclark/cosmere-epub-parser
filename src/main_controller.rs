@@ -1,7 +1,12 @@
 use axum::{extract::State, response::IntoResponse};
 use axum_extra::extract::Form;
 use serde::Deserialize;
-use tantivy::{collector::Count, collector::TopDocs, query::QueryParser, DocAddress, Score};
+use tantivy::{
+    collector::{Count, TopDocs},
+    query::QueryParser,
+    schema::Value,
+    DocAddress, Score, TantivyDocument,
+};
 
 use crate::{
     domain::{BookState, HtmlTemplate, ResultsTemplate, RichParagraph},
@@ -93,24 +98,24 @@ pub async fn search(
 
     let mut results: Vec<RichParagraph> = vec![];
     for (_score, doc_address) in top_docs {
-        let retrieved_doc = searcher.doc(doc_address).unwrap();
+        let retrieved_doc: TantivyDocument = searcher.doc(doc_address).unwrap();
         results.push(RichParagraph {
             book: retrieved_doc
                 .get_first(state.tantivy.book)
                 .unwrap()
-                .as_text()
+                .as_str()
                 .unwrap()
                 .to_string(),
             chapter: retrieved_doc
                 .get_first(state.tantivy.chapter)
                 .unwrap()
-                .as_text()
+                .as_str()
                 .unwrap()
                 .to_string(),
             text: retrieved_doc
                 .get_first(state.tantivy.passage)
                 .unwrap()
-                .as_text()
+                .as_str()
                 .unwrap()
                 .to_string(),
         });
