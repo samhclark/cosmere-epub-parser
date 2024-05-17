@@ -9,11 +9,11 @@ format:
 
 # Runs clippy on the sources 
 check:
-	cargo clippy --locked -- -D warnings -D clippy::pedantic -D clippy::nursery
+	cargo clippy --frozen -- -D warnings -D clippy::pedantic -D clippy::nursery
 
 # Runs unit tests
 test:
-	cargo test --locked
+	cargo test --frozen
 
 # Run load test against the prod server
 load_test:
@@ -25,4 +25,6 @@ run:
 
 # Build and deploy the version on this branch to prod
 deploy:
-	flyctl deploy --ha=false
+	flyctl deploy \
+		--ha=false \
+		--build-arg rust_version=$(rustup show active-toolchain | awk '{print $1}' | grep -Po '^\d+\.\d+\.\d+')

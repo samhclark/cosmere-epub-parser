@@ -1,10 +1,10 @@
+ARG rust_version
 ARG debian_version=bookworm
-ARG rust_version=1.78.0
 FROM docker.io/library/rust:${rust_version}-slim-${debian_version} as builder 
 WORKDIR /usr/src/myapp
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY . .
-RUN cargo install --path .
+RUN cargo install --locked --path .
 
 ARG debian_version
 FROM docker.io/library/debian:${debian_version}-slim

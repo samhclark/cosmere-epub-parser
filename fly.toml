@@ -1,16 +1,14 @@
-# fly.toml file generated for csearch-test on 2022-11-06T22:37:21-06:00
-
 app = "csearch"
 kill_signal = "SIGINT"
 kill_timeout = 5
 primary_region = "ord"
 processes = []
 
-[env]
+[build]
+  dockerfile = "Dockerfile"
 
-[experimental]
-  allowed_public_ports = []
-  auto_rollback = true
+[deploy]
+  strategy = "bluegreen"
 
 [[services]]
   internal_port = 8080
