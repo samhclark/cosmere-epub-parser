@@ -4,12 +4,13 @@ FROM docker.io/library/rust:${rust_version}-slim-${debian_version} as builder
 WORKDIR /usr/src/myapp
 ENV CARGO_REGISTRIES_CRATES_IO_PROTOCOL=sparse
 COPY . .
-RUN cargo install --locked --path .
+RUN apt-get update --quiet --assume-yes \
+    && apt-get install --quiet --assume-yes mold \
+    && cargo install --locked --path .
 
 ARG debian_version
 FROM docker.io/library/debian:${debian_version}-slim
 RUN apt-get update --quiet --assume-yes \
-    && apt-get upgrade --quiet --assume-yes \
     && apt-get install dumb-init --quiet --assume-yes \
     && mkdir /assets
 
